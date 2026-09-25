@@ -1,5 +1,6 @@
 #include "PipeWireManager.h"
 #include <QDebug>
+#include <algorithm>
 #include <spa/param/audio/format-utils.h>
 
 PipeWireManager::PipeWireManager(QStringList excludedNodes,
@@ -85,7 +86,17 @@ void PipeWireManager::onGlobalEvent(const uint32_t id,
   }
 
   const char *nodeName = spa_dict_lookup(props, PW_KEY_NODE_NAME);
-  if (m_excludedNodes.contains(nodeName)) {
+  if (nodeName == nullptr) {
+    return;
+  }
+
+  const QString nodeNameStr(nodeName);
+  const bool isExcluded =
+      std::any_of(m_excludedNodes.cbegin(), m_excludedNodes.cend(),
+                  [&nodeNameStr](const QString &pattern) {
+                    return nodeNameStr.startsWith(pattern);
+                  });
+  if (isExcluded) {
     return;
   }
 
