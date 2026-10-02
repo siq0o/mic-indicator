@@ -77,6 +77,28 @@ void PipeWireManager::setupAudioStream() {
   emit onStreamCreated(m_stream);
 }
 
+// Picks the most human-friendly name available for a stream.
+static QString streamDisplayName(const spa_dict *props) {
+  for (const char *key :
+       {PW_KEY_APP_NAME, PW_KEY_APP_PROCESS_BINARY, PW_KEY_NODE_DESCRIPTION,
+        PW_KEY_NODE_NAME}) {
+    const char *value = spa_dict_lookup(props, key);
+    if (value != nullptr && value[0] != '\0') {
+      return QString::fromUtf8(value);
+    }
+  }
+  return QStringLiteral("Unknown application");
+}
+
+void PipeWireManager::emitUsers() {
+  QStringList users;
+  for (const auto &node : m_nodes) {
+    users << node.name;
+  }
+  users.removeDuplicates();
+  emit onMicUsersChanged(users);
+}
+
 void PipeWireManager::onGlobalEvent(const uint32_t id,
                                     const spa_dict *const props) {
   const char *mediaClass = spa_dict_lookup(props, PW_KEY_MEDIA_CLASS);
@@ -104,17 +126,24 @@ void PipeWireManager::onGlobalEvent(const uint32_t id,
     emit onMicUsageChanged(true);
   }
 
-  if (std::find(m_nodes.begin(), m_nodes.end(), id) == m_nodes.end()) {
-    m_nodes.push_back(id);
+  const bool known = std::any_of(m_nodes.cbegin(), m_nodes.cend(),
+                                 [id](const MicNode &n) { return n.id == id; });
+  if (!known) {
+    m_nodes.push_back({id, streamDisplayName(props)});
+    emitUsers();
   }
 }
 
 void PipeWireManager::onGlobalRemoveEvent(const uint32_t id) {
-  auto it = std::find(m_nodes.begin(), m_nodes.end(), id);
-  if (it != m_nodes.end()) {
-    *it = m_nodes.back();
-    m_nodes.pop_back();
+  auto it = std::find_if(m_nodes.begin(), m_nodes.end(),
+                         [id](const MicNode &n) { return n.id == id; });
+  if (it == m_nodes.end()) {
+    return;
   }
+
+  *it = m_nodes.back();
+  m_nodes.pop_back();
+  emitUsers();
 
   if (m_nodes.empty()) {
     emit onMicUsageChanged(false);

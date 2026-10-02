@@ -25,6 +25,10 @@ int main(int argc, char *argv[]) {
                    &micTrayIcon, &MicTrayIcon::setMicActive,
                    Qt::QueuedConnection);
 
+  QObject::connect(&pipeWireManager, &PipeWireManager::onMicUsersChanged,
+                   &micTrayIcon, &MicTrayIcon::setMicUsers,
+                   Qt::QueuedConnection);
+
   QThread pipeWireThread;
   pipeWireManager.moveToThread(&pipeWireThread);
   QObject::connect(&pipeWireThread, &QThread::started, &pipeWireManager,

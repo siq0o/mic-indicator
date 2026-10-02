@@ -2,7 +2,10 @@
 
 #include <QMetaType>
 #include <QTimer>
+#include <QString>
+#include <QStringList>
 #include <pipewire/pipewire.h>
+#include <vector>
 
 // PipeWire’s `pw_stream` is an opaque/incomplete type; Qt6.4 and lower requires
 // this so `pw_stream*` can be used in typed signal/slot connections without a
@@ -20,6 +23,7 @@ public:
 
 signals:
   void onMicUsageChanged(bool micUsed);
+  void onMicUsersChanged(QStringList users);
   void onStreamCreated(pw_stream *stream);
 
 private:
@@ -27,6 +31,7 @@ private:
 
   void onGlobalEvent(uint32_t id, const spa_dict *props);
   void onGlobalRemoveEvent(uint32_t id);
+  void emitUsers();
 
   pw_main_loop *m_loop;
   pw_context *m_context;
@@ -39,6 +44,11 @@ private:
   uint32_t m_samplingRate;
   uint32_t m_channels;
 
+  struct MicNode {
+    uint32_t id;
+    QString name;
+  };
+
   // There are usually not many nodes, so a vector is sufficient.
-  std::vector<uint32_t> m_nodes;
+  std::vector<MicNode> m_nodes;
 };

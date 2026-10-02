@@ -2,6 +2,7 @@
 
 #include <QIcon>
 #include <QMenu>
+#include <QStringList>
 #include <QSystemTrayIcon>
 
 enum MicStatus {
@@ -20,12 +21,14 @@ public:
 public slots:
   void setMicActive(bool micActive);
   void setVolumeHigh(bool volumeHigh);
+  void setMicUsers(const QStringList &users);
 
 private:
   void setMicStatus(MicStatus micStatus);
 
   QSystemTrayIcon m_trayIcon;
   QMenu m_menu;
+  QAction m_usersAction;
   QAction m_exitAction;
   QIcon m_offIcon;
   QIcon m_lowVolumeIcon;
@@ -33,4 +36,6 @@ private:
 
   bool m_micActive;
   bool m_volumeHigh;
+  MicStatus m_status;
+  QStringList m_users;
 };
